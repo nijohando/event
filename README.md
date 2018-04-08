@@ -19,13 +19,13 @@ Main motivations for writing this library are:
 #### Ligningen / Boot
 
 ```clojure
-[jp.nijohando/event "0.1.0-SNAPSHOT"]
+[jp.nijohando/event "0.1.0"]
 ```
 
 #### Clojure CLI / deps.edn
 
 ```clojure
-jp.nijohando/event {:mvn/version "0.1.0-SNAPSHOT"}
+jp.nijohando/event {:mvn/version "0.1.0"}
 ```
 
 ## Usage

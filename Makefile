@@ -17,7 +17,7 @@ TASK_REPL=-C:dev:test -R:dev:repl:test:package -m prj.task.repl
 
 GROUP_ID=jp.nijohando
 ARTIFACT_ID=event
-VERSION=0.1.0-SNAPSHOT
+VERSION=0.1.1-SNAPSHOT
 JAR_FILE=$(WORK_DIR)/$(ARTIFACT_ID)-$(VERSION).jar
 DEPLOY_REPO_URL=https://clojars.org/repo
 
