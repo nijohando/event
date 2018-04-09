@@ -14,7 +14,7 @@
   ([event]
    (reply-to event nil))
   ([event value]
-   (merge {:path (str "/emitters/" (get-in event [:header :emitter-id]))}
+   (merge {:path (str "/emitters/" (get-in event [:header :emitter-id]) "/reply")}
           (when (some? value)
             {:value value}))))
 

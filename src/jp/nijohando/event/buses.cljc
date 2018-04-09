@@ -16,7 +16,7 @@
       (emitize [this emitter-ch reply-ch]
         (let [emitter-id (ev/next-id! idgen)]
           (when reply-ch
-            (ca/tap mult-ch (listener/listen [(str "/emitters/" emitter-id)] reply-ch)))
+            (ca/tap mult-ch (listener/listen [(str "/emitters/" emitter-id "/reply")] reply-ch)))
           (emitter/pipe emitter-id emitter-ch bus-ch)
           nil))
       ev/Listenable

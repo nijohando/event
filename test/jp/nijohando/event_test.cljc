@@ -21,11 +21,11 @@
     (let [original-event {:path "/foo" :header {:emitter-id 7}} 
           reply-event (ev/reply-to original-event)]
       (is (map? reply-event))
-      (is (= "/emitters/7" (:path reply-event)))))
+      (is (= "/emitters/7/reply" (:path reply-event)))))
   (testing "Reply event can be created with path and "
     (let [original-event {:path "/foo" :header {:emitter-id 7}} 
           reply-event (ev/reply-to original-event :hello)]
       (is (map? reply-event))
-      (is (= "/emitters/7" (:path reply-event)))
+      (is (= "/emitters/7/reply" (:path reply-event)))
       (is (= :hello (:value reply-event))))))
 
