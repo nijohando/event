@@ -1,8 +1,16 @@
 (ns prj.user
-  (:require [prj.test :refer [test-clj test-cljs]]
-            [prj.repl :refer [repl-cljs]]
-            [prj.package :refer [update-pom deploy]]
-            [prj.cljs :refer [npm-install build-cljs]]
-            [jp.nijohando.event :as ev]
-            [clojure.core.async :as ca]
-            [clojure.tools.namespace.repl :refer [refresh]]))
+  (:require [jp.nijohando.event :as f]
+            [jp.nijohando.prj.test :as prj-test]
+            [prj.cljs]))
+
+(defn test-clj
+  []
+  (prj-test/run-tests 'jp.nijohando.event-test 'jp.nijohando.event-test-clj))
+
+(defn test-cljs
+  []
+  (prj.cljs/test-cljs))
+
+(defn repl-cljs
+  []
+  (prj.cljs/repl-cljs))

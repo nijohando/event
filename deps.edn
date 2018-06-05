@@ -1,20 +1,21 @@
 {:deps
  {org.clojure/clojure       {:mvn/version "1.9.0"}
-  org.clojure/clojurescript {:mvn/version "1.9.946"}
+  org.clojure/clojurescript {:mvn/version "1.10.238"}
   org.clojure/core.async    {:mvn/version "0.4.474"}
   metosin/reitit-core       {:mvn/version "0.1.0"}
-  jp.nijohando/failable        {:mvn/version "0.2.0"}}
+  jp.nijohando/failable        {:mvn/version "0.2.1"}}
 
  :aliases
  {:dev     {:extra-paths ["dev"]
-            :extra-deps  {environ                     {:mvn/version "1.1.0"}
-                          meta-merge                  {:mvn/version "1.0.0"}
-                          org.clojure/tools.namespace {:mvn/version "0.3.0-alpha4"}
-                          jp.nijohando/deferable      {:mvn/version "0.2.0"}}}
-  :test    {:extra-paths ["test"]}
-  :repl    {:extra-deps {org.clojure/tools.nrepl {:mvn/version "0.2.12"}
-                         cider/cider-nrepl       {:mvn/version "0.17.0-SNAPSHOT"}
-                         figwheel-sidecar        {:mvn/version "0.5.14"}}}
-  :package {:extra-deps {com.cemerick/pomegranate {:mvn/version "1.0.0"}
-                         org.clojure/data.xml     {:mvn/version "0.2.0-alpha5"}}}}}
+            :extra-deps {jp.nijohando.prj/prj-core {:mvn/version "1.0.0"}}}
+  :cljs    {:extra-deps {jp.nijohando.prj/prj-cljs {:mvn/version "1.0.0"}
+                         jp.nijohando.prj/prj-cljs-nodejs {:mvn/version "1.0.0"}
+                         jp.nijohando.prj/prj-cljs-repl-figwheel {:mvn/version "1.0.0"}
+                         jp.nijohando.prj/prj-cljs-test {:mvn/version "1.0.0"}}}
+  :test    {:extra-paths ["test"]
+            :extra-deps {org.clojure/core.async {:mvn/version "0.4.474"}
+                         jp.nijohando/deferable {:mvn/version "0.2.0"}
+                         jp.nijohando.prj/prj-test {:mvn/version "1.0.0"}}}
+  :repl    {:extra-deps {jp.nijohando.prj/prj-repl {:mvn/version "1.0.0"}}}
+  :package {:extra-deps {jp.nijohando.prj/prj-package {:mvn/version "1.0.0"}}}}}
 

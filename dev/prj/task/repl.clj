@@ -1,11 +1,10 @@
 (ns prj.task.repl
-  (:require [prj :refer [deftask]]
-            [prj.repl]))
+  (:require [jp.nijohando.prj.core :refer [deftask]]
+            [jp.nijohando.prj.repl :as prj-repl]))
 
 (deftask repl-clj
   [args]
-  (prj.repl/repl-clj))
+  (prj-repl/start-nrepl-server)
+  (prj-repl/start-repl 'prj.user)
+  (prj-repl/stop-nrepl-server))
 
-(deftask repl-cljs
-  [args]
-  (prj.repl/repl-cljs))

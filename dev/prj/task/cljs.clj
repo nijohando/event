@@ -1,7 +1,16 @@
 (ns prj.task.cljs
-  (:require [prj :refer [deftask]]
+  (:require [jp.nijohando.prj.core :refer [deftask]]
             [prj.cljs]))
 
 (deftask npm-install
-  [args]
+  [_]
   (prj.cljs/npm-install))
+
+(deftask repl-cljs
+  [_]
+  (prj.cljs/repl-cljs))
+
+(deftask test-cljs
+  [_]
+  (prj.cljs/test-cljs))
+
