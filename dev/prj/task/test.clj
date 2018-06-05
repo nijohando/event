@@ -1,11 +1,7 @@
 (ns prj.task.test
-  (:require [prj :refer [deftask]]
-            [prj.test]))
+  (:require [jp.nijohando.prj.core :refer [deftask]]
+            [jp.nijohando.prj.test :as prj-test]))
 
 (deftask test-clj
-  [args]
-  (prj.test/test-clj))
-
-(deftask test-cljs
-  [args]
-  (prj.test/test-cljs))
+  [conf & test-case-symbols]
+  (prj-test/run-tests 'jp.nijohando.event-test 'jp.nijohando.event-test-clj))

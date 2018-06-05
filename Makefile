@@ -10,42 +10,43 @@ ifndef CLJCMD
 	CLJCMD=clj
 endif
 
-TASK_CLJS=-C:dev -R:dev -m prj.task.cljs
-TASK_TEST=-C:dev:test -R:dev:test -m prj.task.test
-TASK_PACKAGE=-C:dev -R:dev:package -m prj.task.package
-TASK_REPL=-C:dev:test -R:dev:repl:test:package -m prj.task.repl
+TASK_GROUP_CLJS=-C:dev -R:dev:cljs:test -m prj.task.cljs
+TASK_GROUP_TEST=-C:dev:test -R:dev:test -m prj.task.test
+TASK_GROUP_PACKAGE=-C:dev -R:dev:package -m prj.task.package
+TASK_GROUP_REPL=-C:dev:test -R:dev:repl:test:package:cljs -m prj.task.repl
 
 GROUP_ID=jp.nijohando
 ARTIFACT_ID=event
-VERSION=0.1.2-SNAPSHOT
+VERSION=0.1.2
 JAR_FILE=$(WORK_DIR)/$(ARTIFACT_ID)-$(VERSION).jar
 DEPLOY_REPO_URL=https://clojars.org/repo
+LOCAL_REPO_PATH=~/.m2/repository
 
 ifeq ($(findstring SNAPSHOT, $(VERSION)),)
 	IS_RELEASE_VERSION=yes
 endif
 
-.PHONY: cljs/npm-install repl-clj repl-cljs test-clj test-cljs package deploy clean clean-all
-.DEFAULT_GOAL := repl
+.PHONY: npm-install repl-clj repl-cljs test-clj test-cljs package deploy install clean clean-all
+.DEFAULT_GOAL := repl-clj
 
 npm-install:
-	$(CLJCMD) $(TASK_CLJS) :npm-install
+	$(CLJCMD) $(TASK_GROUP_CLJS) :npm-install
 
 repl-clj:
-	$(CLJCMD) $(TASK_REPL) :repl-clj
+	$(CLJCMD) $(TASK_GROUP_REPL) :repl-clj
 
 repl-cljs:
-	$(CLJCMD) $(TASK_REPL) :repl-cljs
+	$(CLJCMD) $(TASK_GROUP_CLJS) :repl-cljs
 
 test-clj:
-	$(CLJCMD) $(TASK_TEST) :test-clj
+	$(CLJCMD) $(TASK_GROUP_TEST) :test-clj
 
 test-cljs:
-	$(CLJCMD) $(TASK_TEST) :test-cljs
+	$(CLJCMD) $(TASK_GROUP_CLJS) :test-cljs
 
 pom.xml:
 	$(CLJCMD) -Spom
-	$(CLJCMD) $(TASK_PACKAGE) :update-pom $(GROUP_ID) $(ARTIFACT_ID) $(VERSION)
+	$(CLJCMD) $(TASK_GROUP_PACKAGE) :update-pom pom.xml $(GROUP_ID) $(ARTIFACT_ID) $(VERSION)
 ifdef IS_RELEASE_VERSION
 	$(GPG_SIGN_CMD) pom.xml
 endif
@@ -60,7 +61,10 @@ endif
 package: pom.xml $(JAR_FILE)
 
 deploy: package
-	$(CLJCMD) $(TASK_PACKAGE) :deploy pom.xml $(JAR_FILE) $(DEPLOY_REPO_URL)
+	$(CLJCMD) $(TASK_GROUP_PACKAGE) :deploy pom.xml $(JAR_FILE) $(DEPLOY_REPO_URL)
+
+install: package
+	$(CLJCMD) $(TASK_GROUP_PACKAGE) :install pom.xml $(JAR_FILE) $(LOCAL_REPO_PATH)
 
 clean:
 	rm -rf ${WORK_DIR}

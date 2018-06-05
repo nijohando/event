@@ -1,7 +1,10 @@
 (ns prj.user
-  (:require [prj.test.cases]))
+  (:require [jp.nijohando.event :as event :include-macros true]
+            [jp.nijohando.event-test]
+            [jp.nijohando.event-test-cljs]
+            [cljs.test :refer-macros [run-tests]]))
 
 (defn test-cljs
   []
-  (let [{:keys [fail error]} (prj.test.cases/run-all)]
-    (and (zero? fail) (zero? error))))
+  (run-tests 'jp.nijohando.event-test
+             'jp.nijohando.event-test-cljs))
