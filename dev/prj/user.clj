@@ -1,7 +1,8 @@
 (ns prj.user
   (:require [jp.nijohando.event :as f]
             [jp.nijohando.prj.test :as prj-test]
-            [prj.cljs]))
+            [prj.cljs]
+            [clojure.tools.namespace.repl :refer [refresh]]))
 
 (defn test-clj
   []

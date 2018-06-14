@@ -9,7 +9,7 @@
    (emit! emitter-ch event nil))
   ([emitter-ch event timeout-ch]
    (ca/go
-     (let [timeout-ch (or timeout-ch (ca/timeout 10))
+     (let [timeout-ch (or timeout-ch (ca/timeout 500))
            [v ch] (ca/alts! [[emitter-ch event] timeout-ch])]
        (cond
          (= ch emitter-ch) (if (true? v)
@@ -42,7 +42,6 @@
             (is (= :ok (ca/<! (emit! emitter event1))))
             (ev/close! bus)
             (is (= :ok (ca/<! (emit! emitter event1))))
-            (ca/<! (ca/timeout 100))
             (is (= :close (ca/<! (emit! emitter event1))))
             (done)
             (end)))))))
@@ -59,7 +58,6 @@
             (ev/emitize bus emitter)
             (ev/listen bus "/bar" listener)
             (is (= :ok (ca/<! (emit! emitter event1))))
-            (ca/<! (ca/timeout 100))
             (ev/close! bus)
             (let [[r v] (ca/<! (recv! listener))]
               (is (= :ok r))
@@ -83,7 +81,6 @@
             (ev/emitize bus emitter)
             (ev/close! bus)
             (is (= :ok (ca/<! (emit! emitter event1))))
-            (ca/<! (ca/timeout 100))
             (dotimes [n 1]
               (is (= :close (ca/<! (emit! emitter event1)))))
             (done)

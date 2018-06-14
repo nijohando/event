@@ -8,7 +8,7 @@
   ([emitter-ch event]
    (emit!! emitter-ch event nil))
   ([emitter-ch event timeout-ch]
-   (let [timeout-ch (or timeout-ch (ca/timeout 10))
+   (let [timeout-ch (or timeout-ch (ca/timeout 500))
          [v ch] (ca/alts!! [[emitter-ch event] timeout-ch])]
      (cond
        (= ch emitter-ch) (if (true? v)
@@ -39,7 +39,6 @@
         (is (= :ok (emit!! emitter event1)))
         (ev/close! bus)
         (is (= :ok (emit!! emitter event1)))
-        (ca/<!! (ca/timeout 100))
         (is (= :close (emit!! emitter event1))))))
 
   (testing "Listener channel must be closed when the bus is closed"
@@ -48,12 +47,11 @@
             _ (d/defer (ev/close! bus))
             emitter (ca/chan)
             _ (d/defer (ca/close! emitter))
-            listener (ca/chan)
+            listener (ca/chan 1)
             event1 (ev/event "/bar" :bar)]
         (ev/emitize bus emitter)
         (ev/listen bus "/bar" listener)
         (is (= :ok (emit!! emitter event1)))
-        (ca/<!! (ca/timeout 100))
         (ev/close! bus)
         (let [[r v] (recv!! listener)]
           (is (= :ok r))
@@ -72,11 +70,39 @@
         (ev/emitize bus emitter)
         (ev/close! bus)
         (is (= :ok (emit!! emitter event1)))
-        (ca/<!! (ca/timeout 100))
         (dotimes [n 1]
           (is (= :close (emit!! emitter event1))))))))
 
 (deftest emit-and-listen-test
+
+  (testing "Emitting must not be blocked even if no listeners"
+    (d/do*
+      (let [bus (ev/bus)
+            _ (d/defer (ev/close! bus))
+            emitter (ca/chan)
+            _ (d/defer (ca/close! emitter))
+            event-paths (atom #{})]
+        (ev/emitize bus emitter)
+        (doseq [x (range 1000)
+                :let [epath (str "/bar" x) ]]
+          (is (= :ok (emit!! emitter (ev/event epath :bar))))
+          (swap! event-paths conj epath)))))
+
+  (testing "Emitting must not be blocked even if there is a overflowed listener"
+    (d/do*
+      (let [bus (ev/bus)
+            _ (d/defer (ev/close! bus))
+            emitter (ca/chan)
+            _ (d/defer (ca/close! emitter))
+            listener (ca/chan)
+            _ (d/defer (ca/close! listener))
+            event-paths (atom #{})]
+        (ev/emitize bus emitter)
+        (ev/listen bus "/*" listener)
+        (doseq [x (range 10)
+                :let [epath (str "/bar" x) ]]
+          (is (= :ok (emit!! emitter (ev/event epath :bar))))
+          (swap! event-paths conj epath)))))
 
   (testing "Listener can receive an event matching fixed path"
     (d/do*

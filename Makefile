@@ -17,7 +17,7 @@ TASK_GROUP_REPL=-C:dev:test -R:dev:repl:test:package:cljs -m prj.task.repl
 
 GROUP_ID=jp.nijohando
 ARTIFACT_ID=event
-VERSION=0.1.2
+VERSION=0.1.3-SNAPSHOT
 JAR_FILE=$(WORK_DIR)/$(ARTIFACT_ID)-$(VERSION).jar
 DEPLOY_REPO_URL=https://clojars.org/repo
 LOCAL_REPO_PATH=~/.m2/repository
@@ -60,10 +60,10 @@ endif
 
 package: pom.xml $(JAR_FILE)
 
-deploy: package
+deploy: clean package
 	$(CLJCMD) $(TASK_GROUP_PACKAGE) :deploy pom.xml $(JAR_FILE) $(DEPLOY_REPO_URL)
 
-install: package
+install: clean package
 	$(CLJCMD) $(TASK_GROUP_PACKAGE) :install pom.xml $(JAR_FILE) $(LOCAL_REPO_PATH)
 
 clean:
