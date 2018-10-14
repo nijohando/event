@@ -1,8 +1,6 @@
 (ns jp.nijohando.event-test
-  (:require #?(:clj  [clojure.test :as t :refer [run-tests is are deftest testing]]
-               :cljs [cljs.test :as t :refer-macros [run-tests is are deftest testing]])
-            #?(:clj  [clojure.core.async :as ca]
-               :cljs [cljs.core.async :as ca :include-macros true])
+  (:require [clojure.test :as t :refer [run-tests is are deftest testing]]
+            [clojure.core.async :as ca :include-macros true]
             [jp.nijohando.event :as ev :include-macros true]))
 
 (deftest create-event
@@ -18,12 +16,12 @@
 
 (deftest create-reply-event
   (testing "Reply event can be created with an original event"
-    (let [original-event {:path "/foo" :header {:emitter-id 7}} 
+    (let [original-event {:path "/foo" :header {:emitter-id 7}}
           reply-event (ev/reply-to original-event)]
       (is (map? reply-event))
       (is (= "/emitters/7/reply" (:path reply-event)))))
   (testing "Reply event can be created with path and "
-    (let [original-event {:path "/foo" :header {:emitter-id 7}} 
+    (let [original-event {:path "/foo" :header {:emitter-id 7}}
           reply-event (ev/reply-to original-event :hello)]
       (is (map? reply-event))
       (is (= "/emitters/7/reply" (:path reply-event)))
