@@ -41,7 +41,7 @@ CloureScript
 
 ```clojure
 (require '[jp.nijohando.event :as ev :include-macros true]
-         '[cljs.core.async :as ca :include-macros true])
+         '[clojure.core.async :as ca :include-macros true])
 ```
 
 ### Event
