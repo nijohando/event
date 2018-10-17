@@ -1,30 +1,10 @@
 (ns jp.nijohando.event-test-clj
   (:require [clojure.test :as t :refer [run-tests is are deftest testing]]
             [clojure.core.async :as ca]
+            [jp.nijohando.ext.async :as xa]
             [jp.nijohando.event :as ev]
+            [jp.nijohando.failable :as f]
             [jp.nijohando.deferable :as d]))
-
-(defn- emit!!
-  ([emitter-ch event]
-   (emit!! emitter-ch event nil))
-  ([emitter-ch event timeout-ch]
-   (let [timeout-ch (or timeout-ch (ca/timeout 10))
-         [v ch] (ca/alts!! [[emitter-ch event] timeout-ch])]
-     (cond
-       (= ch emitter-ch) (if (true? v)
-                           :ok
-                           :close)
-       (= ch timeout-ch) :timeout))))
-
-(defn- recv!!
-  ([listener-ch]
-   (recv!! listener-ch nil))
-  ([listener-ch timeout-ch]
-   (let [timeout-ch (or timeout-ch (ca/timeout 10))
-         [v ch] (ca/alts!! [listener-ch timeout-ch])]
-     (cond
-       (= ch listener-ch) [:ok v]
-       (= ch timeout-ch) [:timeout]))))
 
 (deftest close-test
 
@@ -36,11 +16,13 @@
             _ (d/defer (ca/close! emitter))
             event1 (ev/event "/bar" :bar)]
         (ev/emitize bus emitter)
-        (is (= :ok (emit!! emitter event1)))
+        (is (f/succ? (xa/>!! emitter event1 :timeout 1000)))
         (ev/close! bus)
-        (is (= :ok (emit!! emitter event1)))
-        (ca/<!! (ca/timeout 100))
-        (is (= :close (emit!! emitter event1))))))
+        (is (f/succ? (xa/>!! emitter event1 :timeout 1000)))
+        (xa/<!! (ca/timeout 100))
+        (let [x (xa/>!! emitter event1 :timeout 1000)]
+          (is (f/fail? x))
+          (is (= ::xa/closed @x))))))
 
   (testing "Listener channel must be closed when the bus is closed"
     (d/do*
@@ -52,15 +34,15 @@
             event1 (ev/event "/bar" :bar)]
         (ev/emitize bus emitter)
         (ev/listen bus "/bar" listener)
-        (is (= :ok (emit!! emitter event1)))
+        (is (f/succ? (xa/>!! emitter event1 :timeout 1000)))
         (ca/<!! (ca/timeout 100))
         (ev/close! bus)
-        (let [[r v] (recv!! listener)]
-          (is (= :ok r))
-          (is (= :bar (:value v))))
-        (let [[r v] (recv!! listener)]
-          (is (= :ok r))
-          (is (nil? v))))))
+        (let [x (xa/<!! listener :timeout 1000)]
+          (is (f/succ? x))
+          (is (= :bar (:value x))))
+        (let [x (xa/<!! listener :timeout 1000)]
+          (is (f/succ? x))
+          (is (nil? x))))))
 
   (testing "Emitting must not be blocked against the closed bus"
     (d/do*
@@ -71,10 +53,12 @@
             event1 (ev/event "/bar" :bar)]
         (ev/emitize bus emitter)
         (ev/close! bus)
-        (is (= :ok (emit!! emitter event1)))
+        ;; First emitting after the bus is closed can not recognize whether the bus is closed or not
+        (is (f/succ? (xa/>!! emitter event1 :timeout 1000)))
         (ca/<!! (ca/timeout 100))
-        (dotimes [n 1]
-          (is (= :close (emit!! emitter event1))))))))
+        (let [x (xa/>!! emitter event1 :timeout 1000)]
+          (is (f/fail? x))
+          (is (= ::xa/closed @x)))))))
 
 (deftest emit-and-listen-test
 
@@ -88,16 +72,17 @@
            _ (d/defer (ca/close! listener))]
        (ev/emitize bus emitter)
        (ev/listen bus "/foo" listener)
-       (is (= :ok (emit!! emitter (ev/event "/bar" :bar))))
-       (is (= :ok (emit!! emitter (ev/event "/foo" :foo))))
-       (let [[r {:keys [path header value]}] (recv!! listener)
+       (is (f/succ? (xa/>!! emitter (ev/event "/bar" :bar) :timeout 1000)))
+       (is (f/succ? (xa/>!! emitter (ev/event "/foo" :foo) :tineout 1000)))
+       (let [{:keys [path header value] :as x} (xa/<!! listener :timeout 1000)
              emitter-id (:emitter-id header)]
-         (is (= :ok r))
+         (is (f/succ? x))
          (is (= "/foo" path))
          (is (= :foo value))
-         (is (= 1 emitter-id))
-         (let [[r _] (recv!! listener)]
-           (is (= r :timeout)))))))
+         (is (= 1 emitter-id)))
+       (let [x (xa/<!! listener :timeout 1000)]
+         (is (f/fail? x))
+         (is (= ::xa/timeout @x))))))
 
   (testing "Listener can receive events matching fixed path"
     (d/do*
@@ -109,23 +94,24 @@
            _ (d/defer (ca/close! listener))]
        (ev/emitize bus emitter)
        (ev/listen bus "/foo" listener)
-       (is (= :ok (emit!! emitter (ev/event "/bar" :bar))))
-       (is (= :ok (emit!! emitter (ev/event "/foo" :foo1))))
-       (is (= :ok (emit!! emitter (ev/event "/foo" :foo2))))
-       (let [[r {:keys [path header value]}] (recv!! listener)
+       (is (f/succ? (xa/>!! emitter (ev/event "/bar" :bar) :timeout 1000)))
+       (is (f/succ? (xa/>!! emitter (ev/event "/foo" :foo1) :timeout 1000)))
+       (is (f/succ? (xa/>!! emitter (ev/event "/foo" :foo2) :timeout 1000)))
+       (let [{:keys [path header value] :as x} (xa/<!! listener :timeout 1000)
              emitter-id (:emitter-id header)]
-         (is (= :ok r))
+         (is (f/succ? x))
          (is (= "/foo" path))
          (is (= :foo1 value))
          (is (= 1 emitter-id)))
-       (let [[r {:keys [path header value]}] (recv!! listener)
+       (let [{:keys [path header value] :as x} (xa/<!! listener :timeout 1000)
              emitter-id (:emitter-id header)]
-         (is (= :ok r))
+         (is (f/succ? x))
          (is (= "/foo" path))
          (is (= :foo2 value))
          (is (= 1 emitter-id)))
-       (let [[r _] (recv!! listener)]
-         (is (= r :timeout))))))
+       (let [x (xa/<!! listener :timeout 1000)]
+         (is (f/fail? x))
+         (is (= ::xa/timeout @x))))))
 
   (testing "Listener can receive an event matching parameterized path"
     (d/do*
@@ -137,19 +123,20 @@
            _ (d/defer (ca/close! listener))]
        (ev/emitize bus emitter)
        (ev/listen bus "/foo/:id" listener)
-       (is (= :ok (emit!! emitter (ev/event "/bar" :bar))))
-       (is (= :ok (emit!! emitter (ev/event "/foo/1" :foo))))
-       (let [[r {:keys [path header value]}] (recv!! listener)
+       (is (f/succ? (xa/>!! emitter (ev/event "/bar" :bar) :timeout 1000)))
+       (is (f/succ? (xa/>!! emitter (ev/event "/foo/1" :foo) :timeout 1000)))
+       (let [{:keys [path header value] :as x} (xa/<!! listener :timeout 1000)
              emitter-id (:emitter-id header)
              {:keys [template path-params]} (:route header)]
-         (is (= :ok r))
+         (is (f/succ? x))
          (is (= "/foo/1" path))
          (is (= :foo value))
          (is (= 1 emitter-id ))
          (is (= "/foo/:id" template))
          (is (= {:id "1"} path-params)))
-       (let [[r _] (recv!! listener)]
-         (is (= r :timeout))))))
+       (let [x (xa/<!! listener :timeout 1000)]
+         (is (f/fail? x))
+         (is (= ::xa/timeout @x))))))
 
   (testing "Listener can receive events matching parameterized path"
     (d/do*
@@ -161,29 +148,30 @@
            _ (d/defer (ca/close! listener))]
        (ev/emitize bus emitter)
        (ev/listen bus "/foo/:id" listener)
-       (is (= :ok (emit!! emitter (ev/event "/bar" :bar))))
-       (is (= :ok (emit!! emitter (ev/event "/foo/1" :foo1))))
-       (is (= :ok (emit!! emitter (ev/event "/foo/2" :foo2))))
-       (let [[r {:keys [path header value]}] (recv!! listener)
+       (is (f/succ? (xa/>!! emitter (ev/event "/bar" :bar) :timeout 1000)))
+       (is (f/succ? (xa/>!! emitter (ev/event "/foo/1" :foo1) :timeout 1000)))
+       (is (f/succ? (xa/>!! emitter (ev/event "/foo/2" :foo2) :timeout 1000)))
+       (let [{:keys [path header value] :as x} (xa/<!! listener :timeout 1000)
              emitter-id (:emitter-id header)
              {:keys [template path-params]} (:route header)]
-         (is (= :ok r))
+         (is (f/succ? x))
          (is (= "/foo/1" path))
          (is (= :foo1 value))
          (is (= 1 emitter-id))
          (is (= "/foo/:id" template))
          (is (= {:id "1"} path-params)))
-       (let [[r {:keys [path header value]}] (recv!! listener)
+       (let [{:keys [path header value] :as x} (xa/<!! listener :timeout 1000)
              emitter-id (:emitter-id header)
              {:keys [template path-params]} (:route header)]
-         (is (= :ok r))
+         (is (f/succ? x))
          (is (= "/foo/2" path))
          (is (= :foo2 value))
          (is (= 1 emitter-id))
          (is (= "/foo/:id" template))
          (is (= {:id "2"} path-params)))
-       (let [[r _] (recv!! listener)]
-         (is (= r :timeout))))))
+       (let [x (xa/<!! listener :timeout 1000)]
+         (is (f/fail? x))
+         (is (= ::xa/timeout @x))))))
 
   (testing "Listener can receive events matching multiple pathes"
     (d/do*
@@ -196,16 +184,16 @@
        (ev/emitize bus emitter)
        (ev/listen bus [["/foo/:id"]
                        ["/bar/:id"]] listener)
-       (is (= :ok (emit!! emitter (ev/event "/foo/1" :foo1))))
-       (is (= :ok (emit!! emitter (ev/event "/bar/1" :bar1))))
-       (let [[r v] (recv!! listener)]
-         (is (= :ok r))
-         (is (= "/foo/1" (:path v)))
-         (is (= "/foo/:id" (get-in v [:header :route :template]))))
-       (let [[r v] (recv!! listener)]
-         (is (= :ok r))
-         (is (= "/bar/1" (:path v)))
-         (is (= "/bar/:id" (get-in v [:header :route :template]))))))))
+       (is (f/succ? (xa/>!! emitter (ev/event "/foo/1" :foo1) :timeout 1000)))
+       (is (f/succ? (xa/>!! emitter (ev/event "/bar/1" :bar1) :timeout 1000)))
+       (let [x (xa/<!! listener :timeout 1000)]
+         (is (f/succ? x))
+         (is (= "/foo/1" (:path x)))
+         (is (= "/foo/:id" (get-in x [:header :route :template]))))
+       (let [x (xa/<!! listener :timeout 1000)]
+         (is (f/succ? x))
+         (is (= "/bar/1" (:path x)))
+         (is (= "/bar/:id" (get-in x [:header :route :template]))))))))
 
 (deftest reply-test
   (testing "Listener can reply to the emitter"
@@ -223,11 +211,11 @@
        (ev/emitize bus emitter1 reply1)
        (ev/emitize bus emitter2)
        (ev/listen bus "/foo" listener2)
-       (is (= :ok (emit!! emitter1 (ev/event "/foo" "hello"))))
-       (let [[r v] (recv!! listener2)]
-         (is (= :ok r))
-         (is (= "hello" (:value v)))
-         (is (= :ok (emit!! emitter2 (ev/reply-to v "world!")))))
-       (let [[r v] (recv!! reply1)]
-         (is (= :ok r))
-         (is (= "world!" (:value v))))))))
+       (is (f/succ? (xa/>!! emitter1 (ev/event "/foo" "hello") :timeout 1000)))
+       (let [x (xa/<!! listener2 :timeout 1000)]
+         (is (f/succ? x))
+         (is (= "hello" (:value x)))
+         (is (f/succ? (xa/>!! emitter2 (ev/reply-to x "world!") :timeout 1000))))
+       (let [x (xa/<!! reply1 :timeout 1000)]
+         (is (f/succ? x))
+         (is (= "world!" (:value x))))))))

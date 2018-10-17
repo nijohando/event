@@ -28,8 +28,9 @@
   [bus routes listener-ch]
   (ev/listen bus routes listener-ch))
 
-(defn close! [bus]
-  (ev/close! bus))
+(defn close! [& buses]
+  (doseq [bus buses]
+    (ev/close! bus)))
 
 (defn bus
   ([]
