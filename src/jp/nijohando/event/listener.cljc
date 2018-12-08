@@ -16,6 +16,17 @@
   []
   (filter (comp some? #(get-in % [:header :route]))))
 
+(defn- pipe
+  [from to]
+  (ca/go-loop []
+    (let [v (ca/<! from)]
+      (if (nil? v)
+        (ca/close! to)
+        (if-not (true? (ca/>! to v))
+          (ca/close! from)
+          (recur)))))
+  to)
+
 (defn listen
   [routes listener-ch]
   (let [raw-routes (if (string? routes)
@@ -24,7 +35,6 @@
         xform (comp (route raw-routes)
                     (routing-filter))
         filter-ch (ca/chan 1 xform)]
-    (ca/pipe filter-ch listener-ch)
+    (pipe filter-ch listener-ch)
     filter-ch))
-
 
