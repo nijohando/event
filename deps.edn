@@ -6,11 +6,14 @@
 
  :aliases
  {:dev     {:extra-paths ["dev"]
-            :extra-deps {jp.nijohando.prj/prj-core {:mvn/version "1.0.0"}}}
+            :extra-deps {jp.nijohando.prj/prj-core {:mvn/version "1.0.0"}
+                         javax.xml.bind/jaxb-api {:mvn/version "2.4.0-b180830.0359"}
+                         org.glassfish.jaxb/jaxb-runtime {:mvn/version "2.4.0-b180830.0438"}}}
   :cljs    {:extra-deps {jp.nijohando.prj/prj-cljs {:mvn/version "1.0.0"}
                          jp.nijohando.prj/prj-cljs-nodejs {:mvn/version "1.0.0"}
                          jp.nijohando.prj/prj-cljs-repl-figwheel {:mvn/version "1.0.0"}
-                         jp.nijohando.prj/prj-cljs-test {:mvn/version "1.0.0"}}}
+                         jp.nijohando.prj/prj-cljs-test {:mvn/version "1.0.0"}}
+            }
   :test    {:extra-paths ["test"]
             :extra-deps {jp.nijohando/ext.async {:mvn/version "0.1.0"}
                          jp.nijohando/failable {:mvn/version "0.4.0"}
